@@ -3,13 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=ROBOTO&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+    <link rel="stylesheet" href="style.css">
     <title>NAHREJTE FORMULÁŘ</title>
 </head>
 <body>
-    <h2></h2>
-    <form action="POST">
-        <input type="">
+    <section>
+        <h2>Vložte excel soubor</h2>
+        <form action="POST">
+            <div class="input-container">
+                <label for="file-upload" class="custom-file-upload">
+                    Pouze soubor xls nebo xlsx
+                </label>
+                <input id="file-upload" type="file" accept=".xls,.xlsx" />
+            </div>
+        </form>
+        <button id="upload-btn" type="button" class="btn btn-primary">Nahrát</button>
+    </section>
 
-    </form>
 </body>
 </html>
