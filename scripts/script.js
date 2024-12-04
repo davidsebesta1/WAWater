@@ -45,24 +45,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
             console.log("Načtená data dle měsíců:", parsedData);
 
-            // Připravit data pro odeslání (filtrovat nenulové hodnoty)
+            
             const dataToInsert = {};
             for (const month in parsedData) {
                 const values = parsedData[month];
                 if (values.some((value) => value !== 0)) { // Má-li měsíc nenulové hodnoty
-                    dataToInsert[month] = values;
+                    dataToInsert[month] = {
+                        teplo: values[0] || 0,
+                        studenaVoda: values[1] || 0,
+                        teplaVoda: values[2] || 0,
+                    };
                 }
             }
 
             console.log("Data k odeslání do databáze:", dataToInsert);
 
-            // Odeslání dat do backendu
-            fetch("/api/save-data", {
+            // Odeslání dat na server (backendu)
+            fetch("http://localhost:3000/upload", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(dataToInsert),
+                body: JSON.stringify({
+                    bytId: 1, // ID bytu (podle potřeby)
+                    data: dataToInsert,
+                }),
             })
                 .then((response) => {
                     if (response.ok) {
