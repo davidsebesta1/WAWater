@@ -46,7 +46,6 @@ label{
 }
 
 input{
-    border: solid;
     width: 100px;
 }
 
@@ -63,7 +62,6 @@ input{
     transition: all linear 0.2s;
     cursor: pointer;
 }
-
 .btn:hover{
     scale: 1.1;
 }
