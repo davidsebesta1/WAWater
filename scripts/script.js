@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log("Data k odeslání do databáze:", dataToInsert);
 
             // Odeslání dat na server (backendu)
-            fetch("http://localhost:3000/upload", {
+            fetch("http://localhost:8082/upload", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
