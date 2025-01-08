@@ -3,9 +3,14 @@ const fs = require("fs");
 const crypto = require("crypto");
 var mysql = require("mysql2");
 const path = require("path");
+const multer = require('multer');
+const XLSX = require('xlsx');
+const formidable = require('formidable');
 
 const listeningIp = "localhost";
 const listeningPort = 8082;
+
+const months = { "led": 1, "úno": 2, "bře": 3, "dub": 4, "kvě": 5, "čer": 6, "čec": 7, "srp": 8, "zář": 9, "říj": 10, "lis": 11, "pro": 12 }
 
 let con = mysql.createConnection({
     host: "localhost",
@@ -89,23 +94,74 @@ const server = http.createServer((req, res) => {
     }
 
     if (req.method === "POST" && req.url === "/upload") {
-        let body = "";
+        // Create a new form and handle file upload
+        const form = new formidable.IncomingForm(); // Corrected to use 'new'
 
-        req.on("data", chunk => {
-            body += chunk;
-        });
+        form.parse(req, (err, fields, files) => {
+            if (err) {
+                console.error("Error in file upload:", err);
+                res.end("Invalid data " + err);
+                res.end('Error processing the file.');
+                return;
+            }
 
-        req.on("end", () => {
+            // Ensure the file exists in the uploaded files
+            const file = files.file;
+
+            if (!file) {
+                res.end("Invalid data " + err);
+                res.end('No file uploaded.');
+                return;
+            }
+
             try {
-                const postData = JSON.parse(body);
+                // Parse the file (assuming it's an Excel file)
+                const data = new Uint8Array(fs.readFileSync(file[0].filepath));
+                const workbook = XLSX.read(data, { type: 'array' });
 
-                console.log(postData);
+                const parsedData = {}; // Object to store parsed data by months
+
+                workbook.SheetNames.forEach((sheetName) => {
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                    const headers = jsonData[0];
+                    const rows = jsonData.slice(1);
+
+                    rows.forEach((row) => {
+                        headers.forEach((header, index) => {
+                            if (header && row[index] !== undefined) {
+                                const key = header.trim();
+                                if (!parsedData[key]) {
+                                    parsedData[key] = [];
+                                }
+                                parsedData[key].push(row[index]);
+                            }
+                        });
+                    });
+                });
+
+                let dataJson = parsedData;
+
+                let year = parseInt(Object.keys(dataJson)[0]);
+                let monthData = {};
+
+                Object.entries(months).map(entry => {
+                    let key = entry[0];
+                    let value = entry[1];
+
+                    monthData[value] = dataJson[key];
+                });
+
+                console.log(year);
+                console.log(monthData);
                 res.statusCode = 200;
                 res.end();
                 return;
             } catch (error) {
                 res.statusCode = 400;
-                res.end("Invalid JSON data");
+                res.end("Invalid data " + error);
+                console.log(error)
                 return;
             }
         });
