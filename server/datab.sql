@@ -58,3 +58,4 @@ CREATE TABLE Alerts (
 INSERT INTO AlertsType(Name) VALUES('ColdWater');
 INSERT INTO AlertsType(Name) VALUES('HotWater');
 
+-- Z SQL databáze získaz data a vložit je do excelu. PHP script nechat v server repu
