@@ -1,8 +1,7 @@
 <?php
-
-    require __DIR__ . '/vendor/autoload.php';
-    use PhpOffice\PhpSpreadsheet\Spreadsheet;
-    use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+require __DIR__ . '/vendor/autoload.php';
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 $host = "localhost";
 $user = "apiUser";
@@ -12,7 +11,7 @@ $database = "Vodarenska";
 $pdo = new PDO("mysql:host=$host;dbname=$database;charset=utf8", $user, $password);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$houseId = 1;
+$houseId = isset($_GET['houseId']) ? (int) $_GET['houseId'] : 1;
 $year = 2023;
 
 $stmt = $pdo->prepare("
@@ -37,18 +36,9 @@ $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 
 $czMonths = [
-    1 => 'led', 
-    2 => 'úno', 
-    3 => 'bře', 
-    4 => 'dub', 
-    5 => 'kvě', 
-    6 => 'čer', 
-    7 => 'čec', 
-    8 => 'srp', 
-    9 => 'zář', 
-    10 => 'říj', 
-    11 => 'lis', 
-    12 => 'pro'
+    1 => 'led', 2 => 'úno', 3 => 'bře', 4 => 'dub', 5 => 'kvě', 
+    6 => 'čer', 7 => 'čec', 8 => 'srp', 9 => 'zář', 10 => 'říj', 
+    11 => 'lis', 12 => 'pro'
 ];
 
 $sheet->setCellValue('A1', 'Teplo [poměrové jednotky]');
@@ -72,11 +62,9 @@ foreach ($czMonths as $monthNum => $monthCzName) {
 }
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment;filename="export_' . $year . '.xlsx"');
+header("Content-Disposition: attachment;filename=\"export_house_{$houseId}.xlsx\"");
 header('Cache-Control: max-age=0');
 
 $writer = new Xlsx($spreadsheet);
 $writer->save('php://output');
 exit;
-
-?>

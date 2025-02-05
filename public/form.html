@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=ROBOTO&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="script.js" type="text/javascript"></script>
+    <script src="script.js" defer></script>
     <link rel="stylesheet" href="style.css">
     <title>NAHREJTE FORMULÁŘ</title>
 </head>
@@ -25,17 +25,24 @@
                 <label for="house-picker">Vyberte dům:</label>
                 <select id="house-picker" required>
                     <option value="" disabled selected>Vyberte dům</option>
+                    <option value="1">Dům 1</option>
+                    <option value="2">Dům 2</option>
                 </select>
-            </div>
-            <div class="input-container">
-                <label for="file-upload" class="custom-file-upload">
-                    Pouze soubor xls nebo xlsx
-                </label>
-                <input id="file-upload" type="file" accept=".xls,.xlsx" required />
             </div>
         </form>
         <button id="upload-btn" type="button" class="btn btn-primary">Vyhodnotit</button>
+        <button id="export-btn" type="button" class="btn btn-secondary">Stáhnout Excel</button>
     </section>
+
+    <script>
+        document.getElementById("export-btn").addEventListener("click", function () {
+            const houseId = document.getElementById("house-picker").value;
+            if (!houseId) {
+                alert("Vyberte dům před stažením Excel souboru.");
+                return;
+            }
+            window.location.href = `server/script.php?houseId=${houseId}`;
+        });
+    </script>
 </body>
 </html>
-
