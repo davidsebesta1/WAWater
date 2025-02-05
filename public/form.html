@@ -12,16 +12,30 @@
 <body>
     <section>
         <h2>Vložte excel soubor</h2>
-        <form action="POST">
+        <form id="upload-form">
+            <div>
+                <label for="username">Uživatelské jméno:</label>
+                <input id="username" type="text" placeholder="Zadejte jméno" required />
+            </div>
+            <div>
+                <label for="password">Heslo:</label>
+                <input id="password" type="password" placeholder="Zadejte heslo" required />
+            </div>
+            <div>
+                <label for="house-picker">Vyberte dům:</label>
+                <select id="house-picker" required>
+                    <option value="" disabled selected>Vyberte dům</option>
+                </select>
+            </div>
             <div class="input-container">
                 <label for="file-upload" class="custom-file-upload">
                     Pouze soubor xls nebo xlsx
                 </label>
-                <input id="file-upload" type="file" accept=".xls,.xlsx" />
+                <input id="file-upload" type="file" accept=".xls,.xlsx" required />
             </div>
         </form>
         <button id="upload-btn" type="button" class="btn btn-primary">Vyhodnotit</button>
     </section>
-
 </body>
 </html>
+
