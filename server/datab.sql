@@ -24,6 +24,17 @@ CREATE TABLE House(
 
 INSERT INTO House(Address, User_ID) VALUES('TempAdresa 1000/1',1);
 
+CREATE TABLE Gauge (
+    ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    SerialNumber VARCHAR(100) NOT NULL UNIQUE,
+    Type ENUM('Heat', 'ColdWater', 'HotWater') NOT NULL,
+    House_ID INT NOT NULL,
+    
+    FOREIGN KEY (House_ID) REFERENCES House(ID)
+);
+
+INSERT INTO Gauge(SerialNumber, Type, House_ID) VALUES('SE01/1', 'Heat', 1);
+
 CREATE TABLE MonthlyUsage(
 	ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     House_ID INT NOT NULL,

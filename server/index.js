@@ -218,6 +218,55 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.method === "POST" && req.url === "/gauge/add") {
+        authenticate(req, res, () => {
+            console.log("a");
+            let body = "";
+            req.on("data", (chunk) => {
+                body += chunk;
+            });
+    
+            req.on("end", () => {
+                try{
+                    console.log(body);
+                    const { serialNumber, type, houseId } = JSON.parse(body);
+        
+                    if (!serialNumber || !type || !houseId) {
+                        res.statusCode = 400;
+                        res.end("Bad Request: Missing serialNumber, type, or houseId.");
+                        return;
+                    }
+        
+                    // Make sure the type is valid
+                    if (!['Heat', 'ColdWater', 'HotWater'].includes(type)) {
+                        res.statusCode = 400;
+                        res.end("Bad Request: Invalid type. Must be 'Heat', 'ColdWater', or 'HotWater'.");
+                        return;
+                    }
+        
+                    const query = "INSERT INTO Gauge (SerialNumber, Type, House_ID) VALUES (?, ?, ?)";
+                    con.query(query, [serialNumber, type, houseId], (err, result) => {
+                        if (err) {
+                            console.error(err);
+                            res.statusCode = 500;
+                            res.end("Error adding gauge.");
+                            return;
+                        }
+        
+                        res.statusCode = 201;
+                        res.end("Gauge added successfully.");
+                    });
+                }catch(exception){
+                    console.log(exception);
+                    res.statusCode = 500;
+                    res.end("Error adding gauge: " + exception);
+                }
+            });
+    
+            return;
+        });
+    }
+
     if (req.method === "POST" && req.url === "/upload") {
         authenticate(req, res, () => {
             const form = new formidable.IncomingForm();
