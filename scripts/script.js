@@ -147,6 +147,89 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     });
 
+    document.addEventListener("DOMContentLoaded", () => {
+        const triggersContainer = document.getElementById("triggers-container");
+        const addTriggerBtn = document.getElementById("add-trigger-btn");
+        const saveTriggersBtn = document.getElementById("save-triggers-btn");
+    
+        // Přidání nového formulářového řádku pro spouštěč
+        addTriggerBtn.addEventListener("click", () => {
+            const triggerDiv = document.createElement("div");
+            triggerDiv.classList.add("trigger-item");
+    
+            triggerDiv.innerHTML = `
+                <label>Měsíc:</label>
+                <input type="number" class="trigger-month" min="1" max="12" required />
+                
+                <label>Rok:</label>
+                <input type="number" class="trigger-year" min="2024" required />
+    
+                <label>Typ upozornění:</label>
+                <select class="trigger-alert-type">
+                    <option value="1">Typ 1</option>
+                    <option value="2">Typ 2</option>
+                </select>
+    
+                <label>Limit:</label>
+                <input type="number" class="trigger-limit" required />
+    
+                <button type="button" class="remove-trigger-btn">Odebrat</button>
+            `;
+    
+            // Tlačítko pro odstranění řádku
+            triggerDiv.querySelector(".remove-trigger-btn").addEventListener("click", () => {
+                triggerDiv.remove();
+            });
+    
+            triggersContainer.appendChild(triggerDiv);
+        });
+    
+        // Uložení triggerů na backend
+        saveTriggersBtn.addEventListener("click", () => {
+            const houseId = document.getElementById("house-picker").value;
+            if (!houseId) {
+                alert("Nejprve vyberte dům.");
+                return;
+            }
+    
+            const triggers = [];
+            document.querySelectorAll(".trigger-item").forEach(triggerDiv => {
+                const month = triggerDiv.querySelector(".trigger-month").value;
+                const year = triggerDiv.querySelector(".trigger-year").value;
+                const alertTypeId = triggerDiv.querySelector(".trigger-alert-type").value;
+                const limit = triggerDiv.querySelector(".trigger-limit").value;
+    
+                if (!month || !year || !alertTypeId || !limit) {
+                    alert("Vyplňte všechny hodnoty.");
+                    return;
+                }
+    
+                triggers.push({ month: parseInt(month), year: parseInt(year), alertTypeId: parseInt(alertTypeId), limit: parseInt(limit) });
+            });
+    
+            fetch("http://localhost:8082/triggers", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ houseId: parseInt(houseId), triggers }),
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Spouštěče byly uloženy.");
+                } else {
+                    throw new Error("Chyba při ukládání.");
+                }
+            })
+            .catch(error => {
+                console.error("Error saving triggers:", error);
+                alert("Nepodařilo se uložit spouštěče.");
+            });
+        });
+    });
+    
+
     // Fetch houses when the page loads
     ensureAuthentication()
         .then(fetchHouses)
