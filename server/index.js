@@ -176,6 +176,45 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.method === "POST" && req.url === "/setTriggers") {
+        let body = "";
+        req.on("data", chunk => {
+            body += chunk;
+        });
+    
+        req.on("end", () => {
+            try {
+                const { houseId, triggers } = JSON.parse(body);
+    
+                if (!houseId || !Array.isArray(triggers) || triggers.length === 0) {
+                    res.statusCode = 400;
+                    res.end("Bad Request: Missing houseId or invalid triggers array.");
+                    return;
+                }
+    
+                const query = "INSERT INTO Alerts (House_ID, Month, Year, AlertsType_ID, LimitExceed) VALUES ?";
+                const values = triggers.map(trigger => [houseId, trigger.month, trigger.year, trigger.alertTypeId, trigger.limit]);
+    
+                con.query(query, [values], (err, result) => {
+                    if (err) {
+                        console.error("Error inserting triggers:", err);
+                        res.statusCode = 500;
+                        res.end("Internal Server Error: Unable to save triggers.");
+                        return;
+                    }
+    
+                    res.statusCode = 201;
+                    res.end("Triggers saved successfully.");
+                });
+            } catch (error) {
+                res.statusCode = 400;
+                res.end("Bad Request: Invalid JSON format.");
+            }
+        });
+    
+        return;
+    }
+
     if (req.method === "POST" && req.url === "/login") {
         let body = "";
         req.on("data", chunk => {
