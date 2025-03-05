@@ -46,17 +46,19 @@ $sheet->setCellValue('A2', 'Studená voda [m3]');
 $sheet->setCellValue('A3', 'Teplá voda [m3]');
 $sheet->setCellValue('A5', "Rok: $year, House_ID: $houseId");
 
-$columnIndex = 2;
+$columnIndex = 2; 
 foreach ($czMonths as $monthNum => $monthCzName) {
-    $sheet->setCellValueByColumnAndRow($columnIndex, 4, $monthCzName);
+    $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex);
+    
+    $sheet->setCellValue("{$columnLetter}4", $monthCzName);
 
     $heat      = isset($usageData[$monthNum]) ? $usageData[$monthNum]['Heat']      : 0;
     $coldWater = isset($usageData[$monthNum]) ? $usageData[$monthNum]['ColdWater'] : 0;
     $hotWater  = isset($usageData[$monthNum]) ? $usageData[$monthNum]['HotWater']  : 0;
 
-    $sheet->setCellValueByColumnAndRow($columnIndex, 1, $heat);
-    $sheet->setCellValueByColumnAndRow($columnIndex, 2, $coldWater);
-    $sheet->setCellValueByColumnAndRow($columnIndex, 3, $hotWater);
+    $sheet->setCellValue("{$columnLetter}1", $heat);
+    $sheet->setCellValue("{$columnLetter}2", $coldWater);
+    $sheet->setCellValue("{$columnLetter}3", $hotWater);
 
     $columnIndex++;
 }
