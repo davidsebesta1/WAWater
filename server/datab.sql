@@ -8,8 +8,7 @@ FLUSH privileges;
 CREATE TABLE User(
 	ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	Name VARCHAR(100) NOT NULL,
-	HashedPassword VARCHAR(255) NOT NULL,
-    EmployeePermissions BIT NOT NULL
+	HashedPassword VARCHAR(255) NOT NULL
 );
 
 INSERT INTO User(Name, HashedPassword, EmployeePermissions) VALUES('admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 1);
@@ -37,7 +36,7 @@ INSERT INTO Gauge(SerialNumber, Type, House_ID) VALUES('SE01/1', 'Heat', 1);
 
 CREATE TABLE MonthlyUsage(
 	ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    House_ID INT NOT NULL,
+    Gauge_ID INT NOT NULL,
     Month INT NOT NULL,
     Year INT NOT NULL,
     Heat DECIMAL(10,2) NOT NULL,
@@ -45,7 +44,7 @@ CREATE TABLE MonthlyUsage(
     HotWater DECIMAL(10,2) NOT NULL
 );
 
-ALTER TABLE MonthlyUsage ADD UNIQUE KEY unique_usage (House_ID, Month, Year);
+ALTER TABLE MonthlyUsage ADD UNIQUE KEY unique_usage (Gauge_ID, Month, Year);
 
 CREATE TABLE AlertsType(
     ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT,

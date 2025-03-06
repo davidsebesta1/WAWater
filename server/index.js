@@ -15,6 +15,8 @@ const secretKey = "supersecretkey"; // Used for signing JWTs
 
 const months = { "led": 1, "úno": 2, "bře": 3, "dub": 4, "kvě": 5, "čer": 6, "čec": 7, "srp": 8, "zář": 9, "říj": 10, "lis": 11, "pro": 12 };
 
+const tokenCache = {};
+
 let con = mysql.createConnection({
     host: "localhost",
     user: "apiUser",
@@ -41,6 +43,14 @@ function authenticate(req, res, next) {
         return;
     }
 
+    // Check token cache first
+    if (tokenCache[token]) {
+        req.user = { id: tokenCache[token] }; // Use cached user ID
+        next();
+        return;
+    }
+
+    // Decode token if not in cache
     jwt.verify(token, secretKey, (err, decoded) => {
         if (err) {
             res.statusCode = 401;
@@ -49,9 +59,20 @@ function authenticate(req, res, next) {
         }
 
         req.user = decoded;
+        tokenCache[token] = decoded.id;
         next();
     });
 }
+
+// Auto-remove expired tokens from cache
+setInterval(() => {
+    Object.keys(tokenCache).forEach((token) => {
+        jwt.verify(token, secretKey, (err) => {
+            if (err) delete tokenCache[token]; // Remove expired tokens
+        });
+    });
+}, 60000);
+
 
 const server = http.createServer((req, res) => {
     console.log(req.url);
@@ -85,6 +106,31 @@ const server = http.createServer((req, res) => {
 
             return;
         }
+
+
+        if (req.url == "/gauges") {
+            authenticate(req, res, () => {
+                const userId = req.user.id; // Use the authenticated user ID to filter results (optional)
+
+                const query = "SELECT * FROM Gauge WHERE House_ID IN (SELECT ID FROM House WHERE User_ID = ?)";
+                console.log(userId);
+                con.query(query, [userId], (err, results) => {
+                    if (err) {
+                        console.error("Error retrieving gauges:", err);
+                        res.statusCode = 500;
+                        res.end("Internal Server Error: Unable to retrieve gauges.");
+                        return;
+                    }
+
+                    res.statusCode = 200;
+                    res.setHeader("Content-Type", "application/json");
+                    res.end(JSON.stringify(results));
+                });
+            });
+
+            return;
+        }
+
         else if (req.url === "/form") {
             const filePath = path.join(__dirname, "..", "public", "form.html");
             console.log(filePath)
@@ -181,20 +227,20 @@ const server = http.createServer((req, res) => {
         req.on("data", chunk => {
             body += chunk;
         });
-    
+
         req.on("end", () => {
             try {
                 const { houseId, triggers } = JSON.parse(body);
-    
+
                 if (!houseId || !Array.isArray(triggers) || triggers.length === 0) {
                     res.statusCode = 400;
                     res.end("Bad Request: Missing houseId or invalid triggers array.");
                     return;
                 }
-    
+
                 const query = "INSERT INTO Alerts (House_ID, Month, Year, AlertsType_ID, LimitExceed) VALUES ?";
                 const values = triggers.map(trigger => [houseId, trigger.month, trigger.year, trigger.alertTypeId, trigger.limit]);
-    
+
                 con.query(query, [values], (err, result) => {
                     if (err) {
                         console.error("Error inserting triggers:", err);
@@ -202,7 +248,7 @@ const server = http.createServer((req, res) => {
                         res.end("Internal Server Error: Unable to save triggers.");
                         return;
                     }
-    
+
                     res.statusCode = 201;
                     res.end("Triggers saved successfully.");
                 });
@@ -211,7 +257,7 @@ const server = http.createServer((req, res) => {
                 res.end("Bad Request: Invalid JSON format.");
             }
         });
-    
+
         return;
     }
 
@@ -230,9 +276,7 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            console.log(password);
             const hashedPassword = hashPassword(password);
-            console.log(hashedPassword);
             con.query("SELECT * FROM User WHERE Name = ? AND HashedPassword = ?", [name, hashedPassword], (err, results) => {
                 if (err) {
                     console.error(err);
@@ -248,6 +292,10 @@ const server = http.createServer((req, res) => {
                 }
 
                 const token = jwt.sign({ id: results[0].ID, name: results[0].Name }, secretKey, { expiresIn: "1h" });
+
+                // Store in cache
+                tokenCache[token] = results[0].ID;
+
                 res.statusCode = 200;
                 res.setHeader("Content-Type", "application/json");
                 res.end(JSON.stringify({ token }));
@@ -259,51 +307,50 @@ const server = http.createServer((req, res) => {
 
     if (req.method === "POST" && req.url === "/gauge/add") {
         authenticate(req, res, () => {
-            console.log("a");
             let body = "";
             req.on("data", (chunk) => {
                 body += chunk;
             });
-    
+
             req.on("end", () => {
-                try{
+                try {
                     console.log(body);
                     const { serialNumber, type, houseId } = JSON.parse(body);
-        
+
                     if (!serialNumber || !type || !houseId) {
                         res.statusCode = 400;
                         res.end("Bad Request: Missing serialNumber, type, or houseId.");
                         return;
                     }
-        
-                    // Make sure the type is valid
+
                     if (!['Heat', 'ColdWater', 'HotWater'].includes(type)) {
                         res.statusCode = 400;
                         res.end("Bad Request: Invalid type. Must be 'Heat', 'ColdWater', or 'HotWater'.");
                         return;
                     }
-        
+
                     const query = "INSERT INTO Gauge (SerialNumber, Type, House_ID) VALUES (?, ?, ?)";
                     con.query(query, [serialNumber, type, houseId], (err, result) => {
                         if (err) {
                             console.error(err);
                             res.statusCode = 500;
-                            res.end("Error adding gauge.");
+                            res.end("Error adding gauge: " + err);
                             return;
                         }
-        
+
                         res.statusCode = 201;
                         res.end("Gauge added successfully.");
                     });
-                }catch(exception){
+                } catch (exception) {
                     console.log(exception);
                     res.statusCode = 500;
                     res.end("Error adding gauge: " + exception);
                 }
             });
-    
-            return;
+
         });
+
+        return;
     }
 
     if (req.method === "POST" && req.url === "/upload") {
@@ -318,7 +365,7 @@ const server = http.createServer((req, res) => {
                     return;
                 }
 
-                let houseId = fields.houseId[0];
+                let gaugeId = fields.gaugeId[0];
                 const file = files.file;
 
                 if (!file) {
@@ -350,6 +397,8 @@ const server = http.createServer((req, res) => {
                                 }
                             });
                         });
+
+                        console.log(parsedData)
                     });
 
                     //console.log(parsedData);
@@ -357,20 +406,29 @@ const server = http.createServer((req, res) => {
                     console.log(year)
 
                     for (let key in months) {
-                        console.log(parsedData[key]);
-
-                        let pomJed = parseFloat(parsedData[key][0])
-                        let coldWater = parseFloat(parsedData[key][1])
-                        let hotWater = parseFloat(parsedData[key][2])
-
-                        if (pomJed == 0 && coldWater == 0 && hotWater == 0) {
+                        if (!parsedData[key] || parsedData[key].length < 3) {
+                            console.warn(`Skipping month "${key}" due to missing data:`, parsedData[key]);
                             continue;
                         }
 
-                        con.query("INSERT INTO MonthlyUsage(House_ID,Month,Year,Heat,ColdWater,HotWater) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE Heat = VALUES(Heat),ColdWater = VALUES(ColdWater),HotWater = VALUES(HotWater); ", [houseId, months[key], year, pomJed, coldWater, hotWater], (err, results) => {
-                            console.log(err);
-                        });
+                        let pomJed = parseFloat(parsedData[key][0]) || 0;
+                        let coldWater = parseFloat(parsedData[key][1]) || 0;
+                        let hotWater = parseFloat(parsedData[key][2]) || 0;
+
+                        if (pomJed === 0 && coldWater === 0 && hotWater === 0) {
+                            console.warn(`Skipping month "${key}" because all values are zero.`);
+                            continue;
+                        }
+
+                        con.query(
+                            "INSERT INTO MonthlyUsage(gauge_ID,Month,Year,Heat,ColdWater,HotWater) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE Heat = VALUES(Heat),ColdWater = VALUES(ColdWater),HotWater = VALUES(HotWater);",
+                            [gaugeId, months[key], year, pomJed, coldWater, hotWater],
+                            (err, results) => {
+                                if (err) console.error("SQL Error:", err);
+                            }
+                        );
                     }
+
 
                     res.statusCode = 200;
                     res.end();
@@ -393,11 +451,11 @@ const server = http.createServer((req, res) => {
             });
 
             req.on("end", () => {
-                const { address, userId } = JSON.parse(body);
-
-                if (!address || !userId) {
+                const { address } = JSON.parse(body);
+                const userId = req.user.id; // Use authenticated user ID
+                if (!address) {
                     res.statusCode = 400;
-                    res.end("Bad Request: Missing address or userId.");
+                    res.end("Bad Request: Missing address.");
                     return;
                 }
 
@@ -406,17 +464,87 @@ const server = http.createServer((req, res) => {
                     if (err) {
                         console.error(err);
                         res.statusCode = 500;
-                        res.end("Error adding house.");
+                        res.end("Error adding house " + err);
                         return;
                     }
 
                     res.statusCode = 201;
-                    res.end("House added successfully.");
+                    res.end("Success");
                 });
             });
 
-            return;
         });
+
+        return;
+    }
+
+    if (req.method === "POST" && req.url === "/gauge/usage") {
+        authenticate(req, res, () => {
+            let body = "";
+            req.on("data", (chunk) => {
+                body += chunk;
+            });
+
+            req.on("end", () => {
+                try {
+                    const { houseId } = JSON.parse(body);
+
+                    if (!houseId) {
+                        res.statusCode = 400;
+                        res.end("Bad Request: Missing houseId.");
+                        return;
+                    }
+
+                    const userId = req.user.id; // Get the authenticated user ID
+
+                    // First, check if the house belongs to the authenticated user
+                    const checkHouseOwnershipQuery = "SELECT * FROM House WHERE ID = ? AND User_ID = ?";
+                    con.query(checkHouseOwnershipQuery, [houseId, userId], (err, results) => {
+                        if (err) {
+                            console.error("Error checking house ownership:", err);
+                            res.statusCode = 500;
+                            res.end("Internal Server Error: Unable to check house ownership.");
+                            return;
+                        }
+
+                        if (results.length === 0) {
+                            res.statusCode = 403;
+                            res.end("Forbidden: House does not belong to the authenticated user.");
+                            return;
+                        }
+
+                        // Get current month's data for all gauges in the specified house ID
+                        const currentMonth = new Date().getMonth() + 1;
+                        const currentYear = new Date().getFullYear();
+
+                        const getUsageQuery = `
+                            SELECT g.SerialNumber, g.Type, m.Heat, m.ColdWater, m.HotWater
+                            FROM Gauge g
+                            JOIN MonthlyUsage m ON g.ID = m.Gauge_ID
+                            WHERE g.House_ID = ? AND m.Month = ? AND m.Year = ?
+                        `;
+                        con.query(getUsageQuery, [houseId, currentMonth, currentYear], (err, results) => {
+                            if (err) {
+                                console.error("Error retrieving gauge usage data:", err);
+                                res.statusCode = 500;
+                                res.end("Internal Server Error: Unable to retrieve gauge usage data.");
+                                return;
+                            }
+
+                            res.statusCode = 200;
+                            res.setHeader("Content-Type", "application/json");
+                            res.end(JSON.stringify(results));
+                        });
+                    });
+                } catch (exception) {
+                    console.log(exception);
+                    res.statusCode = 500;
+                    res.end("Error processing request: " + exception);
+                }
+            });
+        });
+
+        return;
     }
 
     if (req.method === "PUT" && req.url.startsWith("/house/edit")) {

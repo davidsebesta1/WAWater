@@ -29,6 +29,13 @@
                     <option value="2">Dům 2</option>
                 </select>
             </div>
+
+            <div class="input-container">
+                <label for="file-upload" class="custom-file-upload">
+                    Pouze soubor xls nebo xlsx
+                </label>
+                <input id="file-upload" type="file" accept=".xls,.xlsx" required />
+            </div>
         </form>
         <button id="upload-btn" type="button" class="btn btn-primary">Vyhodnotit</button>
         <button id="export-btn" type="button" class="btn btn-secondary">Stáhnout Excel</button>

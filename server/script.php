@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '\..\vendor\autoload.php';
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -11,17 +11,17 @@ $database = "Vodarenska";
 $pdo = new PDO("mysql:host=$host;dbname=$database;charset=utf8", $user, $password);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$houseId = isset($_GET['houseId']) ? (int) $_GET['houseId'] : 1;
-$year = 2023;
+$gaugeId = isset($_GET['GaugeId']) ? (int) $_GET['GaugeId'] : 1;
+$year = 2025;
 
 $stmt = $pdo->prepare("
     SELECT Month, Heat, ColdWater, HotWater
     FROM MonthlyUsage
-    WHERE House_ID = :houseId
+    WHERE Gauge_ID = :gaugeId
       AND Year = :year
     ORDER BY Month
 ");
-$stmt->execute(['houseId' => $houseId, 'year' => $year]);
+$stmt->execute(['gaugeId' => $gaugeId, 'year' => $year]);
 
 $usageData = [];
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -44,21 +44,14 @@ $czMonths = [
 $sheet->setCellValue('A1', 'Teplo [poměrové jednotky]');
 $sheet->setCellValue('A2', 'Studená voda [m3]');
 $sheet->setCellValue('A3', 'Teplá voda [m3]');
-$sheet->setCellValue('A5', "Rok: $year, House_ID: $houseId");
+$sheet->setCellValue('A5', "Rok: $year, Gauge_ID: $gaugeId");
 
-<<<<<<< HEAD
 $columnIndex = 2; // Start at column B
 foreach ($czMonths as $monthNum => $monthCzName) {
     // Convert the column index to a letter (2 -> 'B', 3 -> 'C', etc.)
     $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex);
     
     // Set month name in row 4
-=======
-$columnIndex = 2; 
-foreach ($czMonths as $monthNum => $monthCzName) {
-    $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex);
-    
->>>>>>> aad67009577ff7f6e8c0aa3422bd601d0bfd8885
     $sheet->setCellValue("{$columnLetter}4", $monthCzName);
 
     // Get usage data for each month
@@ -66,10 +59,7 @@ foreach ($czMonths as $monthNum => $monthCzName) {
     $coldWater = isset($usageData[$monthNum]) ? $usageData[$monthNum]['ColdWater'] : 0;
     $hotWater  = isset($usageData[$monthNum]) ? $usageData[$monthNum]['HotWater']  : 0;
 
-<<<<<<< HEAD
     // Set values in rows 1, 2, and 3
-=======
->>>>>>> aad67009577ff7f6e8c0aa3422bd601d0bfd8885
     $sheet->setCellValue("{$columnLetter}1", $heat);
     $sheet->setCellValue("{$columnLetter}2", $coldWater);
     $sheet->setCellValue("{$columnLetter}3", $hotWater);
@@ -79,7 +69,7 @@ foreach ($czMonths as $monthNum => $monthCzName) {
 }
 
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header("Content-Disposition: attachment;filename=\"export_house_{$houseId}.xlsx\"");
+header("Content-Disposition: attachment;filename=\"export_house_{$gaugeId}.xlsx\"");
 header('Cache-Control: max-age=0');
 
 $writer = new Xlsx($spreadsheet);
